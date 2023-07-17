@@ -5,9 +5,9 @@
 ![contributions - welcome](https://img.shields.io/badge/contributions-welcome-blue)
 # Solitaire game for Flipper Zero
 
-![Play screen](screenshots/solitaire.png)
+![Play buffer](screenshots/solitaire.png)
 
-![Play screen](screenshots/solitaire.gif)
+![Play buffer](screenshots/solitaire.gif)
 
 ### Shortcuts
 * Long press up skips the navigation inside the bottom column
