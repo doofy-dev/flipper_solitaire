@@ -110,6 +110,14 @@ struct List {
         }
     }
 
+    void add_front(T *data) {
+        count++;
+        ListItem<T> *c = start;
+        start = new ListItem<T>();
+        start->data = data;
+        start->next = c;
+    }
+
     void remove(T *data) {
         if (!start || !data) return;
 

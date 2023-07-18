@@ -9,17 +9,21 @@ RenderBuffer::RenderBuffer(uint8_t w, uint8_t h) : Buffer(w, h) {
 }
 
 void RenderBuffer::reset() {
+    int size = width() * (height() / 8);
+    for (int i = 0; i < size; i++) {
+        data[i] = 0;
+    }
 }
 
 void RenderBuffer::render(Canvas *const canvas) {
-    canvas_clear(canvas);
+//    canvas_clear(canvas);
     for (uint8_t x = 0; x < width(); x++) {
         for (uint8_t y = 0; y < height(); y++) {
             if (test_pixel(x, y))
                 canvas_draw_dot(canvas, x, y);
         }
     }
-    canvas_commit(canvas);
+//    canvas_commit(canvas);
 }
 
 void RenderBuffer::draw_line(int x0, int y0, int x1, int y1, PixelColor draw_mode) {
@@ -70,40 +74,48 @@ void RenderBuffer::draw_circle(int x, int y, int r, PixelColor color) {
 }
 
 void RenderBuffer::draw(Sprite *const sprite, Vector position, float rotation) {
+    draw(sprite, position, sprite->width(), sprite->height(), rotation);
+}
+
+
+void RenderBuffer::draw(Sprite *const sprite, Vector position, uint8_t x_cap, uint8_t y_cap, float rotation) {
     switch (sprite->draw_mode) {
         default:
         case BlackOnly:
-            draw_sprite(sprite, true, Black, position, rotation);
+            draw_sprite(sprite, true, Black, position, x_cap, y_cap, rotation);
             break;
         case WhiteOnly:
-            draw_sprite(sprite, false, White, position, rotation);
+            draw_sprite(sprite, false, White, position, x_cap, y_cap, rotation);
             break;
         case WhiteAsBlack:
-            draw_sprite(sprite, false, Black, position, rotation);
+            draw_sprite(sprite, false, Black, position, x_cap, y_cap, rotation);
             break;
         case BlackAsWhite:
-            draw_sprite(sprite, true, White, position, rotation);
+            draw_sprite(sprite, true, White, position, x_cap, y_cap, rotation);
             break;
         case WhiteAsInverted:
-            draw_sprite(sprite, false, Flip, position, rotation);
+            draw_sprite(sprite, false, Flip, position, x_cap, y_cap, rotation);
             break;
         case BlackAsInverted:
-            draw_sprite(sprite, true, Flip, position, rotation);
+            draw_sprite(sprite, true, Flip, position, x_cap, y_cap, rotation);
             break;
     }
 }
 
 //TODO: proper scaling
 void
-RenderBuffer::draw_sprite(Sprite *const sprite, bool is_black, PixelColor draw_color, const Vector& position, float rotation) {
+RenderBuffer::draw_sprite(Sprite *const sprite, bool is_black, PixelColor draw_color, const Vector &position,
+                          uint8_t x_cap, uint8_t y_cap, float rotation) {
     Vector anchor = sprite->get_offset();
     float cosTheta = cos(rotation/* + M_PI_2*/);
     float sinTheta = sin(rotation/* + M_PI_2*/);
     float transformedX, transformedY, rotatedX, rotatedY;
+    int max_w = fmin(sprite->width(), x_cap);
+    int max_h = fmin(sprite->height(), y_cap);
     bool isOn;
     int16_t finalX, finalY;
-    for (int y = 0; y < sprite->height(); y++) {
-        for (int x = 0; x < sprite->width(); x++) {
+    for (int y = 0; y < max_h; y++) {
+        for (int x = 0; x < max_w; x++) {
             transformedX = (x - anchor.x);
             transformedY = (y - anchor.y);
             rotatedX = transformedX * cosTheta - transformedY * sinTheta;
@@ -128,7 +140,7 @@ RenderBuffer::~RenderBuffer() {
 void RenderBuffer::draw_rbox(int16_t x0, int16_t y0, int16_t x1, int16_t y1, PixelColor draw_mode) {
     for (int16_t x = x0; x < x1; x++) {
         for (int16_t y = y0; y < y1; y++) {
-            if (((x == x0 || x == x1-1) && (y == y0 || y == y1-1)) || !test_coordinate(x,y)) continue;
+            if (((x == x0 || x == x1 - 1) && (y == y0 || y == y1 - 1)) || !test_coordinate(x, y)) continue;
             set_pixel(x, y, draw_mode);
         }
     }
@@ -140,4 +152,12 @@ void RenderBuffer::draw_rbox_frame(int16_t x0, int16_t y0, int16_t x1, int16_t y
 
     draw_line(x0, y0 + 1, x0, y1 - 1, draw_mode);
     draw_line(x1, y0 + 1, x1, y1 - 1, draw_mode);
+}
+
+void RenderBuffer::draw_box(int16_t x0, int16_t y0, int16_t x1, int16_t y1, PixelColor draw_mode) {
+    for (int16_t x = x0; x < x1; x++) {
+        for (int16_t y = y0; y < y1; y++) {
+            set_pixel(x, y, draw_mode);
+        }
+    }
 }

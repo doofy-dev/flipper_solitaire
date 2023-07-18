@@ -19,11 +19,15 @@ class Game {
     Card *piles[4];
     TableauColumn tableau[7];
 
-    List<Card> hand;
+    TableauColumn hand;
 
     PlayState state = GameStateStart;
     uint8_t current_row;
     uint8_t current_column;
+
+    uint8_t picked_from_row;
+    uint8_t picked_from_column;
+
     int8_t column_selection;
     RenderBuffer *buffer;
     uint32_t round_start;

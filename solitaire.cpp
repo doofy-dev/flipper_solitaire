@@ -29,7 +29,7 @@ static void update_timer_callback(FuriMessageQueue *event_queue) {
 
 static void render_callback(Canvas *const canvas, void *ctx) {
     Game *g = (Game *) ctx;
-    auto status = furi_mutex_acquire(mutex, 25);
+    auto status = furi_mutex_acquire(mutex, 150);
     if (g == nullptr || status != FuriStatusOk) return;
     g->Render(canvas);
     UNUSED(canvas);
@@ -43,15 +43,13 @@ extern "C"
 #endif
 int32_t solitaire_app(void *p) {
     UNUSED(p);
+    FURI_LOG_D("MEMORY", "Free %i", memmgr_get_free_heap());
     int32_t return_code = 0;
+    size_t start = memmgr_get_free_heap();
     Game *game = new Game;
-    FURI_LOG_D("LOAD", "START");
     FuriMessageQueue *event_queue = furi_message_queue_alloc(8, sizeof(AppEvent));
-    FURI_LOG_D("LOAD", "QUEUE");
-    FURI_LOG_D("LOAD", "GAME");
     mutex = furi_mutex_alloc(FuriMutexTypeNormal);
     if (mutex) {
-        FURI_LOG_D("LOAD", "ALLOC");
         bool processing = true;
         auto *notification = static_cast<NotificationApp *>(furi_record_open(RECORD_NOTIFICATION));
 
@@ -62,7 +60,7 @@ int32_t solitaire_app(void *p) {
         view_port_input_callback_set(view_port, input_callback, event_queue);
 
         FuriTimer *timer = furi_timer_alloc(update_timer_callback, FuriTimerTypePeriodic, event_queue);
-        furi_timer_start(timer, furi_kernel_get_tick_frequency() / 30);
+        furi_timer_start(timer, furi_kernel_get_tick_frequency() / 20);
 
         auto gui = static_cast<Gui *>(furi_record_open("gui"));
         gui_add_view_port(gui, view_port, GuiLayerFullscreen);
@@ -72,7 +70,7 @@ int32_t solitaire_app(void *p) {
 //        game->NewRound();
 
         while (processing) {
-            FuriStatus event_status = furi_message_queue_get(event_queue, &event, 150);
+            FuriStatus event_status = furi_message_queue_get(event_queue, &event, FuriWaitForever);
             furi_mutex_acquire(mutex, FuriWaitForever);
 
             if (event_status == FuriStatusOk) {
@@ -93,17 +91,7 @@ int32_t solitaire_app(void *p) {
                                 break;
                         }
                     } else if (event.input->type == InputTypePress) {
-                        switch (event.input->key) {
-                            case InputKeyUp:
-                            case InputKeyDown:
-                            case InputKeyRight:
-                            case InputKeyLeft:
-                            case InputKeyOk:
-                                game->Press(event.input->key);
-                                break;
-                            default:
-                                break;
-                        }
+                        game->Press(event.input->key);
                     }
                 } else if (event.type == EventTypeTick) {
                     game->Update(notification);
@@ -131,6 +119,9 @@ int32_t solitaire_app(void *p) {
     delete game;
     furi_mutex_free(mutex);
     furi_message_queue_free(event_queue);
+    start = memmgr_get_free_heap()-start;
+    if(start!=0)
+        FURI_LOG_E("MEMORY", "Leak detected %i", start);
     return return_code;
 }
 

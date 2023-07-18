@@ -11,7 +11,7 @@ struct Card {
 
     Card(uint8_t s, uint8_t v) : suit(s), value(v) {}
 
-    void Render(uint8_t x, uint8_t y, bool selected, RenderBuffer *buffer);
+    void Render(uint8_t x, uint8_t y, bool selected, RenderBuffer *buffer, uint8_t size_limit);
     static void RenderEmptyCard(uint8_t x, uint8_t y, RenderBuffer *buffer);
-    static void RenderBack(uint8_t x, uint8_t y, bool selected, RenderBuffer *buffer);
+    static void RenderBack(uint8_t x, uint8_t y, bool selected, RenderBuffer *buffer, uint8_t size_limit);
 };

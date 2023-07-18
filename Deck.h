@@ -10,9 +10,9 @@ class Deck {
 public:
     explicit Deck(uint8_t count);
     void Generate();
-    void Render(RenderBuffer *buffer);
+    void Render(RenderBuffer *buffer, bool stockpileSelect, bool wasteSelect);
     void Cycle();
     Card* GetLastWaste();
-    Card* Extract();
     void AddToWaste(Card* c);
+    Card* Extract();
 };
