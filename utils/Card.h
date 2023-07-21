@@ -14,4 +14,5 @@ struct Card {
     void Render(uint8_t x, uint8_t y, bool selected, RenderBuffer *buffer, uint8_t size_limit);
     static void RenderEmptyCard(uint8_t x, uint8_t y, RenderBuffer *buffer);
     static void RenderBack(uint8_t x, uint8_t y, bool selected, RenderBuffer *buffer, uint8_t size_limit);
+    static bool CanPlace(Card *where, Card *what);
 };

@@ -62,3 +62,10 @@ void Card::RenderBack(uint8_t x, uint8_t y, bool selected, RenderBuffer *buffer,
         buffer->draw_box(x + 1, y + 1, x + 16, height, Flip);
     }
 }
+
+bool Card::CanPlace(Card *a, Card *b) {
+    if (a == nullptr) {
+        return b->value == 12;
+    }
+    return a->suit == b->suit && ((b->value + 1) % 13 == (a->value + 2) % 13);
+}

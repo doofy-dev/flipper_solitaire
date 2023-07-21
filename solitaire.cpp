@@ -67,7 +67,6 @@ int32_t solitaire_app(void *p) {
 
         AppEvent event;
         game->Reset();
-//        game->NewRound();
 
         while (processing) {
             FuriStatus event_status = furi_message_queue_get(event_queue, &event, FuriWaitForever);
@@ -94,7 +93,7 @@ int32_t solitaire_app(void *p) {
                         game->Press(event.input->key);
                     }
                 } else if (event.type == EventTypeTick) {
-                    game->Update(notification);
+                    game->Update();
                 }
             }
 

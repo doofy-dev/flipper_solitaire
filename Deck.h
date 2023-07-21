@@ -1,7 +1,9 @@
 #pragma once
 
+#include <furi_hal_resources.h>
 #include "utils/Card.h"
 #include "utils/List.h"
+#include "TableauColumn.h"
 
 class Deck {
     List<Card> stock_pile;
@@ -15,4 +17,5 @@ public:
     Card* GetLastWaste();
     void AddToWaste(Card* c);
     Card* Extract();
+    void Click(InputKey key, bool isDeck, TableauColumn *hand);
 };

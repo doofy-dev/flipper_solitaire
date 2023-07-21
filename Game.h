@@ -43,7 +43,8 @@ public:
 
     void LongPress(InputKey key);
     void Press(InputKey key);
-    void Update(NotificationApp *app);
+    void Update();
+    void ErrorMessage();
 
     ~Game();
 };

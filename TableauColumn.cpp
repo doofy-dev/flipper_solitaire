@@ -22,7 +22,7 @@ void TableauColumn::Render(uint8_t x, uint8_t y, bool selected, uint8_t selectio
     if (cards->count == 0) {
         Card::RenderEmptyCard(x, y, buffer);
         if (selected)
-            buffer->draw_rbox(x, y, x + 16, y + 22, Flip);
+            buffer->draw_rbox(x+1, y+1, x + 16, y + 22, Flip);
         return;
     }
     uint8_t selection = cards->count - selection_from_end;
@@ -38,14 +38,15 @@ void TableauColumn::Render(uint8_t x, uint8_t y, bool selected, uint8_t selectio
     if (first_non_flipped <= loop_start && selection != first_non_flipped) {
         // Draw a card back if it is not the first card
         if (first_non_flipped > 0) {
-            Card::RenderBack(x, y + position, selection == first_non_flipped, buffer, 4);
+            Card::RenderBack(x, y + position, selection == first_non_flipped, buffer, 5);
             // Increment loop start index and position
             position += 4;
             loop_start++;
             had_top = true;
         }
         // Draw the front side of the first non-flipped card
-        (*cards)[first_non_flipped]->Render(x, y + position, selection == first_non_flipped, buffer, cards->count == 1 ? 22 : 8);
+        (*cards)[first_non_flipped]->Render(x, y + position, selection == first_non_flipped, buffer,
+                                            cards->count == 1 ? 22 : 9);
         position += 8;
         loop_start++; // Increment loop start index
     }
@@ -53,19 +54,23 @@ void TableauColumn::Render(uint8_t x, uint8_t y, bool selected, uint8_t selectio
     // Draw the selected card with adjusted visibility
     if (loop_start > selection) {
         if (!had_top && first_non_flipped > 0) {
-            Card::RenderBack(x, y + position, selection == first_non_flipped, buffer,4);
+            Card::RenderBack(x, y + position, selection == first_non_flipped, buffer, 5);
             position += 2;
             loop_start++;
         }
         // Draw the front side of the selected card
-        (*cards)[selection]->Render(x, y + position, true, buffer, 8);
+        (*cards)[selection]->Render(x, y + position, true, buffer, 9);
         position += 8;
         loop_start++; // Increment loop start index
     }
 
     //Draw the rest
     for (uint8_t i = loop_start; i < loop_end; i++, position += 4) {
-        (*cards)[i]->Render(x, y + position, i == selection, buffer, (i+1)==loop_end ? 22 : 4);
+        int height = 5;
+        if((i + 1) == loop_end) height = 22;
+        else if(i == first_non_flipped) height = 9;
+
+        (*cards)[i]->Render(x, y + position, i == selection, buffer, height);
 
         if (i == selection || i == first_non_flipped) position += 4;
     }
@@ -92,10 +97,11 @@ TableauColumn::~TableauColumn() {
     delete cards;
 }
 
-void TableauColumn::AddTo(TableauColumn *other) {
+void TableauColumn::Merge(TableauColumn *other) {
     for (auto *item: *(other->cards)) {
         cards->add(item);
     }
+    other->cards->soft_clear();
 }
 
 Card *TableauColumn::TopCard() {
@@ -106,6 +112,37 @@ uint8_t TableauColumn::Count() {
     return cards->count;
 }
 
-List<Card>* TableauColumn::ExtractEnd(uint8_t count) {
-    return cards->splice(cards->count - count, count);
+Card *TableauColumn::Pop() {
+    return cards->pop();
+}
+
+void TableauColumn::Reveal() {
+    (*cards)[cards->count - 1]->exposed = true;
+}
+
+Card *TableauColumn::LastCard() {
+    if (cards->count > 0) {
+        return (*cards)[cards->count - 1];
+    }
+    return nullptr;
+}
+
+void TableauColumn::Clear() {
+    cards->soft_clear();
+}
+
+bool TableauColumn::CanPlace(TableauColumn *other) {
+    if (cards->count == 0) {
+        if(other->TopCard()->value == 11) FURI_LOG_D("TBLC", "placing first");
+        return other->TopCard()->value == 11;
+    }
+    Card *last = LastCard();
+    Card *top = other->TopCard();
+    int current_suit = last->suit / 2;
+    int other_suit = top->suit / 2;
+    if((current_suit + 1) % 2 == other_suit && (last->value + 1) % 13 == (top->value + 2) % 13) FURI_LOG_D("TBLC", "Adding at end");
+    else
+        FURI_LOG_D("TBLC", "CANT ADD, suit check %i, label check %i", (current_suit + 1) % 2 == other_suit, (last->value + 1) % 13 == (top->value + 2) % 13);
+
+    return (current_suit + 1) % 2 == other_suit && (last->value + 1) % 13 == (top->value + 2) % 13;
 }

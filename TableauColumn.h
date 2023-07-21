@@ -12,12 +12,16 @@ public:
     ~TableauColumn();
     void Reset();
     void AddCard(Card *c);
+    void Clear();
     void AddRange(List<Card> *hand);
-    void AddTo(TableauColumn *other);
-    List<Card>* ExtractEnd(uint8_t count);
+    void Merge(TableauColumn *other);
     void Render(uint8_t x, uint8_t y, bool selected, uint8_t selection, RenderBuffer *buffer);
     Card* TopCard();
+    Card* LastCard();
 
     int8_t FirstNonFlipped();
     uint8_t Count();
+    Card* Pop();
+    void Reveal();
+    bool CanPlace(TableauColumn *other);
 };
