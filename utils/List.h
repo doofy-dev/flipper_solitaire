@@ -56,8 +56,7 @@ struct List {
 
     ~List() {
         FURI_LOG_D("App", "List emptied");
-
-        empty();
+        clear();
     }
 
     void soft_clear() {
@@ -87,15 +86,8 @@ struct List {
         count = 0;
     }
 
-    void empty() {
-        clear();
-        if (start) {
-            check_pointer(start);
-            delete start;
-        }
-    }
-
     void add(T *data) {
+        check_pointer(data);
         count++;
         if (count > 1) {
             ListItem<T> *c = start;
@@ -181,25 +173,30 @@ struct List {
         if (index < count) {
             uint32_t m = (index + amount) > count ? count - index : amount;
             uint32_t curr_id = 0;
-            auto s = start;
+            auto currentItem = start;
+            ListItem<T> *prevItem = nullptr;
             while (curr_id < index) {
-                s = s->next;
-                if (!s) return removedElements;
+                prevItem = currentItem;
+                currentItem = currentItem->next;
+                if (!currentItem) return removedElements;
                 curr_id++;
             }
 
-            ListItem<T> *t;
+            ListItem<T> *temp;
             for (uint32_t i = 0; i < m; i++) {
-                t = s->next;
-                if (s->data) {
-                    removedElements->add(s->data);
+                temp = currentItem->next;
+                if (currentItem->data) {
+                    removedElements->add(currentItem->data);
                 }
-                delete s;
-                s = t->next;
+                delete currentItem;
+                currentItem = temp;
                 count--;
             }
-            if (index == 0) {
-                start = s;
+
+            if (prevItem) {
+                prevItem->next = currentItem;
+            } else {
+                start = currentItem; // Update start if removing from the beginning.
             }
         }
 
@@ -240,6 +237,7 @@ struct List {
 
     T *pop() {
         if (!start) {
+            FURI_LOG_E("LIST", "No start for pop");
             // List is empty, nothing to remove
             return nullptr;
         }

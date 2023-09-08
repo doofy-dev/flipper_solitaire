@@ -7,8 +7,8 @@ Deck::Deck(uint8_t count) : deck_count(count) {
 }
 
 void Deck::Generate() {
-    waste_pile.empty();
-    stock_pile.empty();
+    waste_pile.clear();
+    stock_pile.clear();
     //generate and shuffle deck
     int cards_count = 52 * deck_count;
     uint8_t cards[cards_count];
@@ -28,16 +28,19 @@ void Deck::Generate() {
         int suit = cards[i] / 13;
         stock_pile.add(new Card(suit, letter));
     }
+    FURI_LOG_D("Deck count", "%li", stock_pile.count);
 }
 
 void Deck::Cycle() {
     if (stock_pile.count > 0) {
         auto *c = stock_pile.pop();
+        check_pointer(c);
         c->exposed = true;
         waste_pile.add(c);
     } else {
         while (waste_pile.count > 0) {
             auto *c = waste_pile.pop();
+            check_pointer(c);
             c->exposed = false;
             stock_pile.add(c);
         }
@@ -49,6 +52,7 @@ Card *Deck::GetLastWaste() {
 }
 
 void Deck::AddToWaste(Card *c) {
+    check_pointer(c);
     waste_pile.add(c);
 }
 

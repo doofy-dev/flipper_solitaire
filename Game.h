@@ -10,7 +10,7 @@
 #include "TableauColumn.h"
 
 typedef enum {
-    GameStateGameOver, GameStateStart, GameStatePlay, GameStateAnimate
+    GameStateGameOver, GameStateStart, GameStatePlay, GameStateAnimate, GameStateSolve
 } PlayState;
 
 class Game {
@@ -27,6 +27,7 @@ class Game {
 
     uint8_t picked_from_row;
     uint8_t picked_from_column;
+    NotificationApp* notifications;
 
     int8_t column_selection;
     RenderBuffer *buffer;
@@ -45,6 +46,7 @@ public:
     void Press(InputKey key);
     void Update();
     void ErrorMessage();
+    void CheckCanAutoSolve();
 
     ~Game();
 };

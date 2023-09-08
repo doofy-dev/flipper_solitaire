@@ -4,15 +4,18 @@
 #define max(a, b) a>b?a:b
 
 void TableauColumn::Reset() {
-    cards->empty();
+    cards->clear();
 }
 
 void TableauColumn::AddCard(Card *c) {
+    check_pointer(c);
     cards->add(c);
 }
 
 void TableauColumn::AddRange(List<Card> *hand) {
+    check_pointer(hand);
     for (auto *item: *hand) {
+        check_pointer(item);
         cards->add(item);
     }
 }
@@ -33,19 +36,21 @@ void TableauColumn::Render(uint8_t x, uint8_t y, bool selected, uint8_t selectio
     uint8_t position = 0;
     uint8_t first_non_flipped = FirstNonFlipped();
     bool had_top = false;
+    check_pointer(cards);
 
     // Draw the first flipped and non-flipped card with adjusted visibility
     if (first_non_flipped <= loop_start && selection != first_non_flipped) {
         // Draw a card back if it is not the first card
         if (first_non_flipped > 0) {
-            Card::RenderBack(x, y + position, selection == first_non_flipped, buffer, 5);
+            Card::RenderBack(x, y + position, false, buffer, 5);
             // Increment loop start index and position
             position += 4;
             loop_start++;
             had_top = true;
         }
         // Draw the front side of the first non-flipped card
-        (*cards)[first_non_flipped]->Render(x, y + position, selection == first_non_flipped, buffer,
+        check_pointer((*cards)[first_non_flipped]);
+        (*cards)[first_non_flipped]->Render(x, y + position, false, buffer,
                                             cards->count == 1 ? 22 : 9);
         position += 8;
         loop_start++; // Increment loop start index
@@ -54,10 +59,11 @@ void TableauColumn::Render(uint8_t x, uint8_t y, bool selected, uint8_t selectio
     // Draw the selected card with adjusted visibility
     if (loop_start > selection) {
         if (!had_top && first_non_flipped > 0) {
-            Card::RenderBack(x, y + position, selection == first_non_flipped, buffer, 5);
-            position += 2;
+            Card::RenderBack(x, y + position, false, buffer, 5);
+            position += 4;
             loop_start++;
         }
+        check_pointer((*cards)[selection]);
         // Draw the front side of the selected card
         (*cards)[selection]->Render(x, y + position, true, buffer, 9);
         position += 8;
@@ -68,11 +74,12 @@ void TableauColumn::Render(uint8_t x, uint8_t y, bool selected, uint8_t selectio
     for (uint8_t i = loop_start; i < loop_end; i++, position += 4) {
         int height = 5;
         if((i + 1) == loop_end) height = 22;
-        else if(i == first_non_flipped) height = 9;
-
-        (*cards)[i]->Render(x, y + position, i == selection, buffer, height);
-
-        if (i == selection || i == first_non_flipped) position += 4;
+        else if(i == selection || i == first_non_flipped) height = 9;
+        check_pointer((*cards)[i]);
+        if((*cards)[i]) {
+            (*cards)[i]->Render(x, y + position, i == selection, buffer, height);
+            if (i == selection || i == first_non_flipped) position += 4;
+        }
     }
 }
 
@@ -98,9 +105,20 @@ TableauColumn::~TableauColumn() {
 }
 
 void TableauColumn::Merge(TableauColumn *other) {
+    Card *prev = nullptr;
     for (auto *item: *(other->cards)) {
+        if(prev == item) {
+            FURI_LOG_E("PLACE", "Possible circular dependency!");
+            break;
+        }
+        FURI_LOG_D("PLACE", "ADDING %i %i", item->suit, item->value);
+        if(!item){
+            FURI_LOG_E("PLACE", "nullptr in merge!");
+            break;
+        }
         cards->add(item);
     }
+    FURI_LOG_D("PLACE", "clear");
     other->cards->soft_clear();
 }
 
@@ -145,4 +163,9 @@ bool TableauColumn::CanPlace(TableauColumn *other) {
         FURI_LOG_D("TBLC", "CANT ADD, suit check %i, label check %i", (current_suit + 1) % 2 == other_suit, (last->value + 1) % 13 == (top->value + 2) % 13);
 
     return (current_suit + 1) % 2 == other_suit && (last->value + 1) % 13 == (top->value + 2) % 13;
+}
+
+List<Card> *TableauColumn::splice(uint32_t selection) {
+    FURI_LOG_D("TBLC", "%li,  %li", cards->count-selection, selection);
+    return cards->splice(cards->count-selection-1, selection+1);
 }

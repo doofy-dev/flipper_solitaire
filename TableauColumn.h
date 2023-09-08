@@ -24,4 +24,5 @@ public:
     Card* Pop();
     void Reveal();
     bool CanPlace(TableauColumn *other);
+    List<Card> *splice(uint32_t selection);
 };
