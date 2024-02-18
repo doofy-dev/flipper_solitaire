@@ -1,7 +1,8 @@
 #include "Sprite.h"
 #include "Buffer.h"
+#include "../assets.h"
 
-Sprite::Sprite(const SpriteData *spriteData, DrawMode d) : Buffer(spriteData), _icon(spriteData), draw_mode(d) {
+Sprite::Sprite(const SpriteData *spriteData, DrawMode d) : Buffer(spriteData->data, spriteData->width,spriteData->height), _icon(spriteData), draw_mode(d) {
 }
 
 void Sprite::set_anchor(float x, float y) {
@@ -16,5 +17,5 @@ Vector Sprite::get_offset() {
     };
 }
 
-Sprite::Sprite(const SpriteData &spriteData, DrawMode d) : Buffer(&spriteData), _icon(&spriteData), draw_mode(d) {
+Sprite::Sprite(const SpriteData &spriteData, DrawMode d) : Buffer(spriteData.data, spriteData.width,spriteData.height), _icon(&spriteData), draw_mode(d) {
 }

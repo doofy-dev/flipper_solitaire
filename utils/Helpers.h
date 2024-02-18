@@ -12,8 +12,11 @@
 #define check_pointer(X) while(0)
 #endif
 
-#define CHECK_HEAP() FURI_LOG_I("FlipperGameEngine", "Free/total heap: %zu / %zu", memmgr_get_free_heap(), memmgr_get_total_heap())
-char *basename(const char *path);
+#define CHECK_HEAP() FURI_LOG_I("Solitaire", "Free/total heap: %zu / %zu", memmgr_get_free_heap(), memmgr_get_total_heap())
+char *get_basename(const char *path);
+#ifndef basename
+#define basename(path) get_basename(path)
+#endif
 
 void check_ptr(void *p, const char *file, int line, const char *func);
 

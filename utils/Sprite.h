@@ -3,12 +3,13 @@
 #include "RenderBuffer.h"
 #include "Vector.h"
 
-struct SpriteData {
-    uint8_t width = 0;
-    uint8_t height = 0;
-    uint8_t *data = NULL;
-};
-
+/**
+ * @class Sprite
+ * @brief The Sprite class represents a graphical sprite that can be drawn on a Buffer.
+ *
+ * The Sprite class inherits from the Buffer class and adds functionality specific to sprites.
+ * It contains information about the sprite's icon, anchor point, and draw mode.
+ */
 class Sprite : public Buffer {
     const SpriteData *_icon;
     Vector anchor = {0.5, 0.5};

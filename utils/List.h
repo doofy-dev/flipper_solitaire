@@ -1,290 +1,282 @@
 #pragma once
 
 #include <furi.h>
-#include <iterator>
+#include <cstdio>
 #include "Helpers.h"
 
 template<typename T>
-struct ListItem {
-    ListItem *next;
-    T *data;
-};
+class List {
+private:
+    struct Node {
+        T *data;
+        Node *next;
+        Node *prev;
+    };
+    size_t count=0;
+    Node *head;
+    Node *tail;
 
-template<typename T>
-struct ListIterator {
-    using iterator_category = std::forward_iterator_tag;
+    class Iterator {
+        Node *node;
 
-    ListItem<T> *current;
+    public:
+        explicit Iterator(Node *node) : node(node) {}
 
-    explicit ListIterator(ListItem<T> *node) : current(node) {}
+        T *operator*() {
+            return node->data;
+        }
 
-    ListIterator &operator++() {
-        current = current->next;
-        return *this;
+        Iterator &operator++() {
+            if (node) {
+                node = node->next;
+            }
+            return *this;
+        }
+
+        Iterator operator++(int) {
+            Iterator tmp(*this);
+            operator++();
+            return tmp;
+        }
+
+        Iterator &operator--() {
+            if (node) {
+                node = node->prev;
+            }
+            return *this;
+        }
+
+        Iterator operator--(int) {
+            Iterator tmp(*this);
+            operator--();
+            return tmp;
+        }
+
+        bool operator==(const Iterator &rhs) const {
+            return node == rhs.node;
+        }
+
+        bool operator!=(const Iterator &rhs) const {
+            return node != rhs.node;
+        }
+    };
+
+public:
+    explicit List() : head(nullptr), tail(nullptr) {}
+
+    Iterator begin() const {
+        return Iterator(head);
     }
 
-    ListIterator operator++(int) {
-        ListIterator iterator = *this;
-        ++(*this);
-        return iterator;
+    Iterator end() const {
+        return Iterator(nullptr);
     }
 
-    bool operator==(const ListIterator &other) const {
-        return current == other.current;
+    Iterator last() const {
+        return Iterator(tail);
     }
-
-    bool operator!=(const ListIterator &other) const {
-        return current != other.current;
-    }
-
-    T *operator*() const {
-        return (current->data);
-    }
-
-    T *operator->() const {
-        return current->data;
-    }
-};
-
-
-template<typename T>
-struct List {
-    uint32_t count;
-    ListItem<T> *start = nullptr;
-
-    List() : count(0) {}
 
     ~List() {
-        FURI_LOG_D("App", "List emptied");
         clear();
     }
 
-    void soft_clear() {
-        auto *item = start;
-        ListItem<T> *t;
-        while (item) {
-            t = item;
-            item = item->next;
-            delete t;
-        }
-        count = 0;
-    }
-
     void clear() {
-        auto *item = start;
-        ListItem<T> *t;
-        while (item) {
-            t = item;
-            item = item->next;
-            if (t->data) {
-                check_pointer(t->data);
-                delete t->data;
-            }
-            check_pointer(t);
-            delete t;
+        while (head) {
+            Node *toDelete = head;
+            head = head->next;
+            delete toDelete;
         }
+        tail = nullptr;
         count = 0;
     }
 
-    void add(T *data) {
-        check_pointer(data);
-        count++;
-        if (count > 1) {
-            ListItem<T> *c = start;
-            while (c->next) {
-                c = c->next;
-            }
-            c->next = new ListItem<T>();
-            c->next->data = data;
-        } else {
-            start = new ListItem<T>();
-            start->data = data;
+    void deleteData(){
+        Node *current = head;
+        while (current) {
+            delete current->data;
+            current=current->next;
         }
     }
 
-    void add_front(T *data) {
-        count++;
-        ListItem<T> *c = start;
-        start = new ListItem<T>();
-        start->data = data;
-        start->next = c;
-    }
+    void remove(T *value) {
+        Node *current= head;
+        while (current){
+            if(current->data == value){
+                if (current->prev)
+                    current->prev->next = current->next;
+                else
+                    head = current->next;
 
-    void remove(T *data) {
-        if (!start || !data) return;
+                if (current->next)
+                    current->next->prev = current->prev;
+                else
+                    tail = current->prev;
 
-        ListItem<T> *s = start;
-        if (s->data == data) {
-            check_pointer(s->data);
-            delete s->data;
-            start = start->next;
-            count--;
-        } else {
-            while (s) {
-                if (s->next && s->next->data == data) {
-                    auto n = s->next->next;
-                    check_pointer(s->next->data);
-                    check_pointer(s->next);
-                    delete s->next->data;
-                    delete s->next;
-                    s->next = n;
-                    count--;
-                    return;
-                }
-
-                s = s->next;
+                delete current;
+                --count;
             }
+            current=current->next;
         }
     }
 
-    void soft_remove(T *data) {
-        if (!start || !data) return;
+    void push_back(T *value) {
+        Node *newNode = new Node{value, nullptr, tail};
+        if (tail)
+            tail->next = newNode;
+        else
+            head = newNode;
 
-        ListItem<T> *s = start;
-        if (s->data == data) {
-            auto tmp = start;
-            start = start->next;
-            delete tmp;
-            count--;
-        } else {
-            while (s) {
-                if (s->next && s->next->data == data) {
-                    auto n = s->next->next;
-                    check_pointer(s->next);
-                    delete s->next;
-                    s->next = n;
-                    count--;
-                    return;
-                }
-
-                s = s->next;
-            }
-        }
+        tail = newNode;
+        ++count;
     }
 
-    void remove(uint32_t index, uint32_t amount) {
-        auto *result = splice(index, amount);
-        delete result;
+    void push_front(T *value) {
+        Node *newNode = new Node{value, head, nullptr};
+        if (head)
+            head->prev = newNode;
+        else
+            tail = newNode;
+
+        head = newNode;
+        ++count;
     }
 
-    List<T> *splice(uint32_t index, uint32_t amount) {
-        auto *removedElements = new List<T>();
+    T *pop_back() {
+        if (count == 0)
+            return nullptr;
 
-        if (index < count) {
-            uint32_t m = (index + amount) > count ? count - index : amount;
-            uint32_t curr_id = 0;
-            auto currentItem = start;
-            ListItem<T> *prevItem = nullptr;
-            while (curr_id < index) {
-                prevItem = currentItem;
-                currentItem = currentItem->next;
-                if (!currentItem) return removedElements;
-                curr_id++;
-            }
+        Node *toDelete = tail;
+        tail = tail->prev;
+        if (tail)
+            tail->next = nullptr;
+        else
+            head = nullptr;
 
-            ListItem<T> *temp;
-            for (uint32_t i = 0; i < m; i++) {
-                temp = currentItem->next;
-                if (currentItem->data) {
-                    removedElements->add(currentItem->data);
-                }
-                delete currentItem;
-                currentItem = temp;
-                count--;
-            }
-
-            if (prevItem) {
-                prevItem->next = currentItem;
-            } else {
-                start = currentItem; // Update start if removing from the beginning.
-            }
-        }
-
-        return removedElements;
+        T *data = toDelete->data;
+        delete toDelete;
+        --count;
+        return data;
     }
 
     T *pop_front() {
-        if (!start) {
-            // List is empty, nothing to remove
+        if (count == 0)
             return nullptr;
-        }
 
-        ListItem<T> *front = start;
-        start = start->next; // Update the start pointer to the next element
-
-        T *data = front->data; // Store the data of the front element
-        delete front; // Delete the front element
-        count--;
-        return data; // Return the data of the removed element
+        Node *toDelete = head; // Change this to head instead of tail
+        head = head->next;
+        if (head)
+            head->prev = nullptr;
+        else
+            tail = nullptr;  // Setting tail to nullptr if list is now empty
+        T *data = toDelete->data;
+        delete toDelete;  // Deleting the old head of the list
+        --count;
+        return data;  // return the data
     }
 
-    T *last() {
-        if (!start) {
+    void unset(size_t index){
+        Node *current = head;
+        for (size_t i = 0; i != index && current; ++i) {
+            current = current->next;
+        }
+        if(current){
+            if (current->prev)
+                current->prev->next = current->next;
+            else
+                head = current->next;
+
+            if (current->next)
+                current->next->prev = current->prev;
+            else
+                tail = current->prev;
+
+            delete current;
+            --count;
+        }
+    }
+
+    List<T> *splice(size_t index, size_t numItems) {
+        if (index >= count || numItems == 0 || numItems > (count - index)) {
+            FURI_LOG_E("LIST", "Invalid index or number of items.");
             return nullptr;
         }
 
-        if (!start->next) {
-            return start->data;
-        }
+        List<T> *new_list = new List<T>();
+        Node *current = head;  //It will point to node to remove.
+        Node *prev_node = nullptr; //It will point to node prior to node to remove.
 
-        ListItem<T> *current = start;
-        while (current->next) {
+        //Positioning current and previous node pointers to right nodes.
+        for (size_t i = 0; i < index; ++i) {
+            prev_node = current;
             current = current->next;
         }
 
-        return current->data; // Return the data
+        int i = 0;
+        Node *last_in_segment = current;
+        while (i < numItems - 1 && last_in_segment->next) {
+            last_in_segment = last_in_segment->next;
+            i++;
+        }
+
+        //Avoiding over-splicing if numItems is larger than available items from index
+        numItems = i + 1;
+
+        //Update original list new head and tail after splicing
+        if (prev_node) {
+            prev_node->next = last_in_segment->next;
+        }
+        else {
+            head = last_in_segment->next;
+        }
+
+        if (last_in_segment->next) {
+            last_in_segment->next->prev = prev_node;
+        }
+        else {
+            tail = prev_node;
+        }
+
+        //Update new list head and tail
+        new_list->head = current;
+        new_list->tail = last_in_segment;
+
+        //Update new and original list counts
+        new_list->count = numItems;
+        count -= numItems;
+
+        last_in_segment->next = nullptr;
+        current->prev = nullptr;
+
+        return new_list;
     }
 
-    T *pop() {
-        if (!start) {
-            FURI_LOG_E("LIST", "No start for pop");
-            // List is empty, nothing to remove
-            return nullptr;
-        }
-
-        if (!start->next) {
-            // Only one element in the list
-            T *data = start->data;
-            delete start;
-            start = nullptr;
-            count--;
-            return data;
-        }
-
-        ListItem<T> *previous = nullptr;
-        ListItem<T> *current = start;
-
-        while (current->next) {
-            previous = current;
+    T *operator[](size_t index) {
+        Node *current = head;
+        for (size_t i = 0; i != index && current; ++i)
             current = current->next;
-        }
 
-        previous->next = nullptr; // Remove the last element from the list
-        T *data = current->data; // Store the data of the last element
-        count--;
-
-        delete current; // Delete the last element
-        return data; // Return the data of the removed element
+        return current ? current->data : nullptr;
     }
 
-    ListIterator<T> begin() {
-        return ListIterator<T>(start);
+    const T *operator[](size_t index) const {
+        Node *current = head;
+        for (size_t i = 0; i != index && current; ++i)
+            current = current->next;
+
+        return current->data;
     }
 
-    ListIterator<T> end() {
-        return ListIterator<T>(nullptr);
+    T *peek_front() const {
+        if (head) return head->data;
+        else return nullptr;
     }
 
-    T *operator[](int i) {
-        int index = 0;
-        auto *item = start;
-        while (item) {
-            if (index == i) return item->data;
+    T *peek_back() const {
+        if (tail) return tail->data;
+        else return nullptr;
+    }
 
-            item = item->next;
-            index++;
-        }
-
-        return nullptr;
+    size_t size() const {
+        return count;
     }
 };
