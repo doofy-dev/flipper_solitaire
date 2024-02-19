@@ -66,7 +66,7 @@ void Card::RenderBack(uint8_t x, uint8_t y, bool selected, RenderBuffer *buffer,
 }
 
 bool Card::CanPlaceFoundation(Card *where) {
-    if (!where) {
+    if (!where || (where->value==-1 && where->suit==suit)) {
         return value == ACE;
     }
     return where->suit == suit && ((where->value + 1) % 13 == value % 13);

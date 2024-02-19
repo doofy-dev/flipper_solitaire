@@ -2,6 +2,8 @@
 #include "utils/Sprite.h"
 #include "assets.h"
 
+#define SOLVE_TEST
+
 static Sprite logo = Sprite(sprite_logo, BlackOnly);
 static Sprite solve = Sprite(sprite_solve, BlackOnly);
 static Sprite main_image = Sprite(sprite_main_image, BlackOnly);
@@ -28,7 +30,7 @@ void GameLogic::Input(int key, InputType type) {
             }
             if (state == Solve) {
                 end = furi_get_tick();
-                state = Finish;
+                QuickSolve();
                 return;
             }
             if (state == Finish) {
@@ -111,6 +113,10 @@ void GameLogic::Input(int key, InputType type) {
                 break;
         }
     }
+
+    if (selection[1] == 0 && selection[0] == 2) { //skip empty space
+        selection[0] += key == InputKeyRight ? 1 : -1;
+    }
 }
 
 void GameLogic::PickAndPlace() {
@@ -184,14 +190,12 @@ void GameLogic::HandleNavigation(int key) {
     } else if (selection[1] == 1 && selectedCard > 1) {
         selectedCard--;
     }
-    if (selection[1] == 0 && selection[0] == 2) { //skip empty space
-        selection[0] += key == InputKeyRight ? 1 : -1;
-    }
 }
 
 
 void GameLogic::Update(float delta) {
-    if(state != Finish){
+    //keep the buffer for the falling animation to achieve the trailing effect
+    if (state != Finish) {
         buffer->clear();
     }
     switch (state) {
@@ -213,6 +217,14 @@ void GameLogic::Update(float delta) {
                 buffer->draw(&solve, (Vector) {64, 58}, 0);
                 end = furi_get_tick();
             }
+            break;
+        case Solve:
+            DrawPlayScene();
+            HandleSolve(delta);
+            dirty = true;
+        case Finish:
+            //todo implement the falling animation
+//            dirty = true;
             break;
         default:
             break;
@@ -256,6 +268,7 @@ void GameLogic::GenerateDeck() {
     uint8_t cards[cards_count];
     for (int i = 0; i < cards_count; i++) cards[i] = i % 52;
     srand(DWT->CYCCNT);
+#ifndef SOLVE_TEST
     //reorder
     for (int i = 0; i < cards_count; i++) {
         int r = i + (rand() % (cards_count - i));
@@ -263,12 +276,13 @@ void GameLogic::GenerateDeck() {
         cards[i] = cards[r];
         cards[r] = card;
     }
-
+#endif
     //Init deck list
     for (int i = 0; i < cards_count; i++) {
         int letter = cards[i] % 13;
         int suit = cards[i] / 13;
         stock.push_back(new Card(suit, letter));
+        FURI_LOG_I("Card check", "%i %i", letter, suit);
     }
 }
 
@@ -293,6 +307,14 @@ Vector pos, targetPos;
 
 void GameLogic::DoIntro(float delta) {
     //render next after finish
+#ifdef SOLVE_TEST
+    startTime = furi_get_tick();
+    state = Play;
+    buffer->clear();
+    DrawPlayScene();
+    return;
+#endif
+
     if (!buffer) return;
     buffer->clear();
     DrawPlayScene();
@@ -341,7 +363,7 @@ void GameLogic::DrawPlayScene() {
             stock.peek_back()->Render(2, 1, selection[0] == 0 && selection[1] == 0, buffer);
         }
     } else
-        Card::TryRender(nullptr, 2, 1, selection[0] == 1 && selection[1] == 0, buffer);
+        Card::TryRender(nullptr, 2, 1, selection[0] == 0 && selection[1] == 0, buffer);
 
     Card::TryRender(waste.peek_back(), 20, 1, selection[0] == 1 && selection[1] == 0, buffer);
 
@@ -368,7 +390,8 @@ void GameLogic::DrawColumn(uint8_t x, uint8_t y, uint8_t selected, int8_t column
     auto &deck = column >= 0 ? tableau[column] : hand;
     if (deck.size() == 0 && column >= 0) {
         Card::RenderEmptyCard(x, y, buffer);
-        buffer->draw_rbox(x + 1, y + 1, x + 16, y + 22, Flip);
+        if (selected == 1)
+            buffer->draw_rbox(x + 1, y + 1, x + 16, y + 22, Flip);
         return;
 
     }
@@ -433,4 +456,150 @@ int8_t GameLogic::FirstNonFlipped(const List<Card> &deck) {
     }
 
     return -1;
+}
+
+
+void GameLogic::HandleSolve(float delta) {
+    if (tempCard) {
+
+        tempTime += delta * 5;
+        Vector finalPos{56 + (float) target[0] * 18, 2};
+        Vector localpos = Vector::Lerp(tempPos, finalPos, tempTime);
+        tempCard->Render((uint8_t) localpos.x, (uint8_t) localpos.y, false, buffer);
+        if (finalPos.distance(localpos) < 0.01) {
+            foundation[target[0]].push_back(tempCard);
+            tempCard = nullptr;
+        }
+
+        //check finish
+        uint8_t size = 0;
+        for (uint8_t i = 0; i < 4; i++) {
+            if (foundation[i].size() > 0 && foundation[i].peek_back()->value == KING)
+                size++;
+        }
+
+        if (size == 4) {
+            buffer->clear();
+            DrawPlayScene();
+            state = Finish;
+            return;
+        }
+    } else {
+        tempTime = 0;
+        //search the lowest card
+        int lowestSuit = -2, lowestValue = 13;
+        for (int i = 0; i < 4; i++) {
+            auto &fnd = foundation[i];
+            if (foundation[i].size() == 0) {
+                //find the missing suit
+                int foundations[4] = {0, 0, 0, 0};
+                for (int j = 0; j < 4; j++) {
+                    if (foundation[j].size() > 0) {
+                        foundations[foundation[j].peek_front()->suit] = 1;
+                    }
+                }
+                for (int j = 0; j < 4; j++) {
+                    if (foundations[j] == 0) {
+                        lowestSuit = j;
+                        lowestValue = -1;
+                        target[0] = (float) j;
+                        break;
+                    }
+                }
+                break;
+            }
+            if (i == 0 || (lowestValue + 1) % 13 > (fnd.peek_back()->value + 1) % 13) {
+                lowestSuit = fnd.peek_back()->suit;
+                lowestValue = fnd.peek_back()->value;
+                target[0] = (float) i;
+            }
+        }
+
+        Card lowest(lowestSuit, lowestValue);
+
+        //try to find it in tableau
+        for (int i = 0; i < 7; i++) {
+            auto &tbl = tableau[i];
+            if (tbl.peek_back() && tbl.peek_back()->CanPlaceFoundation(&lowest)) {
+                tempCard = tbl.pop_back();
+                int y = MIN((int) tableau[i].size(), 4) * 4 + 25;
+                tempPos.x = 2 + (float) i * 18;
+                tempPos.y = (float) y;
+                return;
+            }
+        }
+
+        //try to find in waste
+        int index = -1;
+        for (auto *w: waste) {
+            index++;
+            if (w->CanPlaceFoundation(&lowest)) {
+                tempCard = waste.extract(index);
+                tempCard->exposed = true;
+                tempPos.x = 20;
+                tempPos.y = 1;
+                return;
+            }
+        }
+
+        index = -1;
+        //try to find in stock
+        for (auto *w: stock) {
+            index++;
+            if (w->CanPlaceFoundation(&lowest)) {
+                tempCard = stock.extract(index);
+                tempCard->exposed = true;
+                tempPos.x = 2;
+                tempPos.y = 1;
+                return;
+            }
+        }
+    }
+}
+
+void GameLogic::QuickSolve() {
+    waste.deleteData();
+    waste.clear();
+    stock.deleteData();
+    stock.clear();
+    for(uint8_t i=0;i<7;i++){
+        tableau[i].deleteData();
+        tableau[i].clear();
+    }
+
+    for (uint8_t i = 0; i < 4; i++) {
+        auto &fnd = foundation[i];
+        if (foundation[i].size() == 0) {
+            //find the missing suit
+            int foundations[4] = {0, 0, 0, 0};
+            int index = 0;
+            for (int j = 0; j < 4; j++) {
+                if (foundation[j].size() > 0) {
+                    foundations[foundation[j].peek_front()->suit] = 1;
+                    index = j;
+                }
+            }
+            for (int j = 0; j < 4; j++) {
+                if (foundations[j] == 0) {
+                    target[0] = (float) j;
+                    fnd = foundation[index];
+                    //seed the foundation
+                    fnd.push_back(new Card(j, ACE));
+                    fnd.peek_back()->exposed= true;
+                    fnd.push_back(new Card(j, TWO));
+                    fnd.peek_back()->exposed= true;
+                    break;
+                }
+            }
+            break;
+        }
+
+        while (fnd.peek_back()->value != KING) {
+            fnd.push_back(new Card(fnd.peek_back()->suit, fnd.peek_back()->value + 1));
+            fnd.peek_back()->exposed= true;
+        }
+    }
+    buffer->clear();
+    DrawPlayScene();
+    state = Finish;
 }

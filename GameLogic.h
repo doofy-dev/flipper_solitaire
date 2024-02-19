@@ -45,6 +45,9 @@ public:
 
     void DoIntro(float delta);
     void DrawPlayScene();
+    void HandleSolve(float delta);
+    void QuickSolve();
+
     bool isReady(){return readyToRender;}
     void DrawColumn(uint8_t x, uint8_t y, uint8_t selected, int8_t column);
 

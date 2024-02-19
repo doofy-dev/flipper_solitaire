@@ -12,7 +12,7 @@ private:
         Node *next;
         Node *prev;
     };
-    size_t count=0;
+    size_t count = 0;
     Node *head;
     Node *tail;
 
@@ -90,18 +90,18 @@ public:
         count = 0;
     }
 
-    void deleteData(){
+    void deleteData() {
         Node *current = head;
         while (current) {
             delete current->data;
-            current=current->next;
+            current = current->next;
         }
     }
 
     void remove(T *value) {
-        Node *current= head;
-        while (current){
-            if(current->data == value){
+        Node *current = head;
+        while (current) {
+            if (current->data == value) {
                 if (current->prev)
                     current->prev->next = current->next;
                 else
@@ -115,7 +115,7 @@ public:
                 delete current;
                 --count;
             }
-            current=current->next;
+            current = current->next;
         }
     }
 
@@ -174,12 +174,12 @@ public:
         return data;  // return the data
     }
 
-    void unset(size_t index){
+    void unset(size_t index) {
         Node *current = head;
         for (size_t i = 0; i != index && current; ++i) {
             current = current->next;
         }
-        if(current){
+        if (current) {
             if (current->prev)
                 current->prev->next = current->next;
             else
@@ -224,15 +224,13 @@ public:
         //Update original list new head and tail after splicing
         if (prev_node) {
             prev_node->next = last_in_segment->next;
-        }
-        else {
+        } else {
             head = last_in_segment->next;
         }
 
         if (last_in_segment->next) {
             last_in_segment->next->prev = prev_node;
-        }
-        else {
+        } else {
             tail = prev_node;
         }
 
@@ -264,6 +262,32 @@ public:
             current = current->next;
 
         return current->data;
+    }
+
+    //TODO: removes more than should
+    T *extract(size_t index) {
+        if (index > size()) {
+            FURI_LOG_E("List", "Out of range");
+            return nullptr;
+        }
+
+        Node *current = head;
+        for (size_t i = 0; i != index && current; ++i)
+            current = current->next;
+
+        if (current->prev)
+            current->prev->next = current->next;
+        else
+            head = current->next;
+        if (current->next)
+            current->next->prev = current->prev;
+        else
+            tail = current->prev;
+
+        T *data = current->data;
+        delete current;
+        count--;
+        return data;
     }
 
     T *peek_front() const {

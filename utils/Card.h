@@ -6,19 +6,19 @@ class RenderBuffer;
 
 enum CardValue {
     NONE = -1,
-    TWO = 0,
-    THREE = 1,
-    FOUR = 2,
-    FIVE = 3,
-    SIX = 4,
-    SEVEN = 5,
-    EIGHT = 6,
-    NINE = 7,
-    TEN = 8,
-    JACK = 9,
-    QUEEN = 10,
-    KING = 11,
-    ACE = 12,
+    TWO = 0,        //1
+    THREE = 1,      //2
+    FOUR = 2,       //3
+    FIVE = 3,       //4
+    SIX = 4,        //5
+    SEVEN = 5,      //6
+    EIGHT = 6,      //7
+    NINE = 7,       //8
+    TEN = 8,        //9
+    JACK = 9,       //10
+    QUEEN = 10,     //11
+    KING = 11,      //12
+    ACE = 12,       //13
 };
 
 struct Card {
