@@ -19,6 +19,7 @@ char *get_basename(const char *path);
 #endif
 
 void check_ptr(void *p, const char *file, int line, const char *func);
+float inverse_tanh(double x);
 
 float lerp(float a, float b, float t);
 

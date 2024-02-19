@@ -54,9 +54,9 @@ int32_t GameLoop::render_thread(void *ctx) {
 
     return 0;
 }
+char timeString[24];
 
 void GameLoop::Start() {
-    dolphin_deed(DolphinDeedPluginGameStart);
     if (!render_mutex) {
         return;
     }
@@ -67,8 +67,22 @@ void GameLoop::Start() {
         if (logic->isReady()) {
             furi_mutex_acquire(render_mutex, FuriWaitForever);
             buffer->render(canvas);
-            canvas_commit(canvas);
+
+            if(logic->end>0 &&logic->state == Logo){
+                int diff = logic->end - logic->startTime;
+                if(diff>0) {
+                    int hours = diff / 3600000;
+                    int minutes = (diff % 3600000) / 60000;
+                    int seconds = (diff % 60000) / 1000;
+                    snprintf(timeString, sizeof(timeString), "Completed: %02d:%02d:%02d", hours, minutes, seconds);
+                    canvas_set_font(canvas, FontSecondary);
+                    canvas_draw_str_aligned(canvas, 60, 5, AlignCenter, AlignTop, timeString);
+                }
+            }
+
+
             furi_mutex_release(render_mutex);
+            canvas_commit(canvas);
         }
         furi_thread_yield();
     }

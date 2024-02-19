@@ -1,8 +1,10 @@
+#include <dolphin/helpers/dolphin_deed.h>
+#include <dolphin/dolphin.h>
 #include "GameLogic.h"
 #include "utils/Sprite.h"
 #include "assets.h"
 
-#define SOLVE_TEST
+//#define SOLVE_TEST
 
 static Sprite logo = Sprite(sprite_logo, BlackOnly);
 static Sprite solve = Sprite(sprite_solve, BlackOnly);
@@ -26,6 +28,7 @@ void GameLogic::Input(int key, InputType type) {
         } else if (key == InputKeyOk) {
             if (state == Logo) {
                 state = Intro;
+                dolphin_deed(DolphinDeedPluginGameStart);
                 return;
             }
             if (state == Solve) {
@@ -34,6 +37,7 @@ void GameLogic::Input(int key, InputType type) {
                 return;
             }
             if (state == Finish) {
+                dolphin_deed(DolphinDeedPluginGameWin);
                 state = Logo;
                 return;
             } else if (state == Intro) {
@@ -166,6 +170,16 @@ void GameLogic::PickAndPlace() {
             target[1] = 0;
         }
     }
+
+    for (uint8_t i = 0; i < 4; i++) {
+        if(foundation[i].size()==0 || foundation[i].peek_back()->value!= KING)
+            return;
+    }
+
+    buffer->clear();
+    DrawPlayScene();
+    selectedCard = 0;
+    state = Finish;
 }
 
 void GameLogic::HandleNavigation(int key) {
@@ -208,6 +222,7 @@ void GameLogic::Update(float delta) {
         case Intro:
             DoIntro(delta);
             dirty = true;
+            end = 0;
             break;
         case Play:
             DrawPlayScene();
@@ -222,9 +237,10 @@ void GameLogic::Update(float delta) {
             DrawPlayScene();
             HandleSolve(delta);
             dirty = true;
+            break;
         case Finish:
-            //todo implement the falling animation
-//            dirty = true;
+            dirty = true;
+            FallingCard(delta);
             break;
         default:
             break;
@@ -234,6 +250,8 @@ void GameLogic::Update(float delta) {
 }
 
 void GameLogic::Reset() {
+    dolphin_deed(DolphinDeedPluginGameStart);
+    delete tempCard;
     stock.deleteData();
     stock.clear();
     waste.deleteData();
@@ -293,6 +311,7 @@ GameLogic::~GameLogic() {
     waste.clear();
     hand.deleteData();
     hand.clear();
+    delete tempCard;
     for (int i = 0; i < 7; i++) {
         tableau[i].deleteData();
         tableau[i].clear();
@@ -462,8 +481,9 @@ int8_t GameLogic::FirstNonFlipped(const List<Card> &deck) {
 void GameLogic::HandleSolve(float delta) {
     if (tempCard) {
 
-        tempTime += delta * 5;
+        tempTime += delta * 8;
         Vector finalPos{56 + (float) target[0] * 18, 2};
+        if(tempTime>1) tempTime=1;
         Vector localpos = Vector::Lerp(tempPos, finalPos, tempTime);
         tempCard->Render((uint8_t) localpos.x, (uint8_t) localpos.y, false, buffer);
         if (finalPos.distance(localpos) < 0.01) {
@@ -480,6 +500,7 @@ void GameLogic::HandleSolve(float delta) {
 
         if (size == 4) {
             buffer->clear();
+            selectedCard = 0;
             DrawPlayScene();
             state = Finish;
             return;
@@ -558,48 +579,92 @@ void GameLogic::HandleSolve(float delta) {
 }
 
 void GameLogic::QuickSolve() {
+    if (tempCard) {
+        delete tempCard;
+        tempCard = nullptr;
+    }
+
     waste.deleteData();
     waste.clear();
     stock.deleteData();
     stock.clear();
-    for(uint8_t i=0;i<7;i++){
+    for (uint8_t i = 0; i < 7; i++) {
         tableau[i].deleteData();
         tableau[i].clear();
     }
 
+    int foundations[4] = {0, 0, 0, 0};
+    for (int j = 0; j < 4; j++) {
+        if (foundation[j].size() > 0) {
+            foundations[foundation[j].peek_front()->suit] = 1;
+        }
+    }
+
+    for (int j = 0; j < 4; j++) {
+        if (foundations[j] == 0) {
+            //seed the foundation
+            foundation[j].push_back(new Card(j, ACE));
+            foundation[j].peek_back()->exposed = true;
+        }
+    }
+
     for (uint8_t i = 0; i < 4; i++) {
         auto &fnd = foundation[i];
-        if (foundation[i].size() == 0) {
-            //find the missing suit
-            int foundations[4] = {0, 0, 0, 0};
-            int index = 0;
-            for (int j = 0; j < 4; j++) {
-                if (foundation[j].size() > 0) {
-                    foundations[foundation[j].peek_front()->suit] = 1;
-                    index = j;
-                }
-            }
-            for (int j = 0; j < 4; j++) {
-                if (foundations[j] == 0) {
-                    target[0] = (float) j;
-                    fnd = foundation[index];
-                    //seed the foundation
-                    fnd.push_back(new Card(j, ACE));
-                    fnd.peek_back()->exposed= true;
-                    fnd.push_back(new Card(j, TWO));
-                    fnd.peek_back()->exposed= true;
-                    break;
-                }
-            }
-            break;
+        if (fnd.peek_back()->value == ACE) {
+            fnd.push_back(new Card(fnd.peek_back()->suit, TWO));
+            fnd.peek_back()->exposed = true;
         }
 
         while (fnd.peek_back()->value != KING) {
             fnd.push_back(new Card(fnd.peek_back()->suit, fnd.peek_back()->value + 1));
-            fnd.peek_back()->exposed= true;
+            fnd.peek_back()->exposed = true;
         }
     }
     buffer->clear();
     DrawPlayScene();
+    selectedCard = 0;
     state = Finish;
+}
+
+void GameLogic::FallingCard(float delta) {
+    UNUSED(delta);
+    if (tempCard) {
+        if ((furi_get_tick() - tempTime) > 12) {
+            tempTime = furi_get_tick();
+            tempPos.x += velocity.x;
+            tempPos.y -= velocity.y;
+
+            if (tempPos.y > 41) {
+                velocity.y *= -0.8;
+                tempPos.y = 41;
+            } else {
+                velocity.y -= 1;
+                if (velocity.y < -10) velocity.y = -10;
+            }
+            tempCard->Render((int8_t) tempPos.x, (int8_t) tempPos.y, false, buffer);
+            if (tempPos.x < -18 || tempPos.x > 128) {
+                delete tempCard;
+                tempCard = nullptr;
+            }
+        }
+    } else {
+        float r1 = 2.0 * (float) (rand() % 2) - 1.0; // random number in range -1 to 1
+        if (r1 == 0) r1 = 0.1;
+        float r2 = inverse_tanh(r1);
+
+        velocity.x = (float) (tanh(r2)) * (rand() % 3 + 1);
+
+        if (velocity.x == 0) velocity.x = 1;
+        velocity.y = (rand() % 3 + 1);
+        if (foundation[selectedCard].size() > 0) {
+            tempCard = foundation[selectedCard].pop_back();
+            tempCard->exposed = true;
+            tempPos.x = 56 + selectedCard * 18;
+            tempPos.y = 2;
+            selectedCard = (uint8_t) (selectedCard + 1) % 4;
+        } else {
+            state = Logo;
+            return;
+        }
+    }
 }

@@ -28,7 +28,7 @@ static Sprite suits[] = {
 
 static Sprite backSide = Sprite(sprite_pattern_big, BlackOnly);
 
-void Card::Render(uint8_t x, uint8_t y, bool selected, RenderBuffer *buffer, uint8_t size_limit) {
+void Card::Render(int8_t x, int8_t y, bool selected, RenderBuffer *buffer, uint8_t size_limit) {
     uint8_t height = y + fmin(size_limit, 22);
 
     if (exposed) {

@@ -31,3 +31,7 @@ LogTimer::LogTimer(const char *n) : name(n) {
 LogTimer::~LogTimer() {
     FURI_LOG_D("App", "%s took %fms", name, furi_get_tick() - start);
 }
+
+float inverse_tanh(double x) {
+    return 0.5f * (float)log((1 + x) / (1 - x));
+}

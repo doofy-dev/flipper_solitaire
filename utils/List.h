@@ -264,7 +264,6 @@ public:
         return current->data;
     }
 
-    //TODO: removes more than should
     T *extract(size_t index) {
         if (index > size()) {
             FURI_LOG_E("List", "Out of range");

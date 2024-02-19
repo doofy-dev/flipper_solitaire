@@ -28,7 +28,7 @@ struct Card {
 
     Card(uint8_t s, uint8_t v) : suit(s), value((CardValue) v) {}
 
-    void Render(uint8_t x, uint8_t y, bool selected, RenderBuffer *buffer, uint8_t size_limit = 22);
+    void Render(int8_t x, int8_t y, bool selected, RenderBuffer *buffer, uint8_t size_limit = 22);
 
     static void RenderEmptyCard(uint8_t x, uint8_t y, RenderBuffer *buffer);
 
