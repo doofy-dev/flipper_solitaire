@@ -11,12 +11,12 @@ GameLoop::GameLoop() {
     input_subscription = furi_pubsub_subscribe(input, &input_callback, this);
     buffer = new RenderBuffer(128, 64);
     render_mutex = (FuriMutex *) furi_mutex_alloc(FuriMutexTypeNormal);
-    logic = new GameLogic(buffer, &inputHandler);
+    notification_app = (NotificationApp *) furi_record_open(RECORD_NOTIFICATION);
+    notification_message_block(notification_app, &sequence_display_backlight_enforce_on);
+    logic = new GameLogic(buffer, &inputHandler, notification_app);
     if (!render_mutex) {
         return;
     }
-    notification_app = (NotificationApp *) furi_record_open(RECORD_NOTIFICATION);
-    notification_message_block(notification_app, &sequence_display_backlight_enforce_on);
     buffer_thread_ptr = furi_thread_alloc_ex(
         "BackBufferThread", 3 * 1024, render_thread, this);
 }
@@ -26,9 +26,6 @@ void GameLoop::input_callback(const void *value, void *ctx) {
     const auto *event = (const InputEvent *) value;
     inst->inputHandler.Set(event->key, event->type);
     inst->logic->dirty = event->type != InputTypePress;
-    if (event->type == InputTypeLong) {
-        FURI_LOG_I("INPUT", "LONG INPUT %i", event->key);
-    }
     if (event->type == InputTypeLong && event->key == InputKeyBack) {
         inst->processing = false;
     }

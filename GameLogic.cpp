@@ -1,5 +1,6 @@
 #include <dolphin/helpers/dolphin_deed.h>
 #include <dolphin/dolphin.h>
+#include <notification/notification_messages.h>
 #include "GameLogic.h"
 #include "utils/Sprite.h"
 #include "assets.h"
@@ -11,7 +12,9 @@ static Sprite solve = Sprite(sprite_solve, BlackOnly);
 static Sprite main_image = Sprite(sprite_main_image, BlackOnly);
 static Sprite start = Sprite(sprite_start, BlackOnly);
 
-GameLogic::GameLogic(RenderBuffer *b, InputEventHandler *inputHandler) : buffer(b) {
+GameLogic::GameLogic(RenderBuffer *b, InputEventHandler *inputHandler, NotificationApp *notification_app) : buffer(b),
+                                                                                                            notification(
+                                                                                                                notification_app) {
     inputHandler->subscribe(this, [](void *ctx, int key, InputType type) {
         auto *inst = (GameLogic *) ctx;
         inst->Input(key, type);
@@ -108,9 +111,10 @@ void GameLogic::Input(int key, InputType type) {
                                 foundation[i].push_back(waste.pop_back());
                             else
                                 foundation[i].push_back(tableau[selection[0]].pop_back());
-                            break;
+                            return;
                         }
                     }
+                    PlayError();
                 }
                 break;
             default:
@@ -134,32 +138,44 @@ void GameLogic::PickAndPlace() {
             waste.push_back(hand.pop_back());
             target[0] = 0;
             target[1] = 0;
+        } else {
+            PlayError();
         }
     }
         //place to foundation
-    else if (selection[1] == 0 && selection[0] > 2 && hand.size() == 1) {
-        uint8_t id = selection[0] - 3;
-        if (hand.peek_back()->CanPlaceFoundation(foundation[id].peek_back())) {
-            foundation[id].push_back(hand.pop_back());
-            target[0] = selection[0];
-            target[1] = selection[1];
+    else if (selection[1] == 0 && selection[0] > 2) {
+        if (hand.size() == 1) {
+            uint8_t id = selection[0] - 3;
+            if (hand.peek_back()->CanPlaceFoundation(foundation[id].peek_back())) {
+                foundation[id].push_back(hand.pop_back());
+                target[0] = selection[0];
+                target[1] = selection[1];
+            } else {
+                PlayError();
+            }
+        } else {
+            PlayError();
         }
     }
         //pick and place columns
     else if (selection[1] == 1) {
         auto &tbl = tableau[selection[0]];
         if (hand.size() == 0) {
-            if (tbl.peek_back() && !tbl.peek_back()->exposed) {
-                tbl.peek_back()->exposed = true;
-            } else {
-                uint8_t count = selectedCard;
-                while (count > 0) {
-                    hand.push_front(tbl.pop_back());
-                    count--;
+            if(tbl.peek_back()) {
+                if (!tbl.peek_back()->exposed) {
+                    tbl.peek_back()->exposed = true;
+                } else {
+                    uint8_t count = selectedCard;
+                    while (count > 0) {
+                        hand.push_front(tbl.pop_back());
+                        count--;
+                    }
+                    selectedCard = 1;
+                    target[0] = selection[0];
+                    target[1] = selection[1];
                 }
-                selectedCard = 1;
-                target[0] = selection[0];
-                target[1] = selection[1];
+            } else {
+                PlayError();
             }
         } else if ((target[0] == selection[0] && target[1] == selection[1]) ||
                    hand.peek_front()->CanPlaceColumn(tbl.peek_back())) {
@@ -168,11 +184,13 @@ void GameLogic::PickAndPlace() {
             }
             target[0] = 0;
             target[1] = 0;
+        } else {
+            PlayError();
         }
     }
 
     for (uint8_t i = 0; i < 4; i++) {
-        if(foundation[i].size()==0 || foundation[i].peek_back()->value!= KING)
+        if (foundation[i].size() == 0 || foundation[i].peek_back()->value != KING)
             return;
     }
 
@@ -300,7 +318,6 @@ void GameLogic::GenerateDeck() {
         int letter = cards[i] % 13;
         int suit = cards[i] / 13;
         stock.push_back(new Card(suit, letter));
-        FURI_LOG_I("Card check", "%i %i", letter, suit);
     }
 }
 
@@ -483,7 +500,7 @@ void GameLogic::HandleSolve(float delta) {
 
         tempTime += delta * 8;
         Vector finalPos{56 + (float) target[0] * 18, 2};
-        if(tempTime>1) tempTime=1;
+        if (tempTime > 1) tempTime = 1;
         Vector localpos = Vector::Lerp(tempPos, finalPos, tempTime);
         tempCard->Render((uint8_t) localpos.x, (uint8_t) localpos.y, false, buffer);
         if (finalPos.distance(localpos) < 0.01) {
@@ -637,6 +654,7 @@ void GameLogic::FallingCard(float delta) {
             if (tempPos.y > 41) {
                 velocity.y *= -0.8;
                 tempPos.y = 41;
+                PlayBounce();
             } else {
                 velocity.y -= 1;
                 if (velocity.y < -10) velocity.y = -10;
@@ -667,4 +685,38 @@ void GameLogic::FallingCard(float delta) {
             return;
         }
     }
+}
+
+
+static const NotificationSequence sequence_fail = {
+    &message_vibro_on,
+    &message_note_c4,
+    &message_delay_10,
+    &message_vibro_off,
+    &message_sound_off,
+    &message_delay_10,
+
+    &message_vibro_on,
+    &message_note_a3,
+    &message_delay_10,
+    &message_vibro_off,
+    &message_sound_off,
+    NULL,
+};
+
+static const NotificationSequence sequence_bounce = {
+    &message_vibro_on,
+    &message_note_c4,
+    &message_delay_10,
+    &message_vibro_off,
+    &message_sound_off,
+    NULL,
+};
+
+void GameLogic::PlayError() {
+    notification_message(notification, (const NotificationSequence *) &sequence_fail);
+}
+
+void GameLogic::PlayBounce() {
+    notification_message(notification, (const NotificationSequence *) &sequence_bounce);
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 
+#include <notification/notification.h>
 #include "utils/Card.h"
 #include "utils/List.h"
 #include "utils/Input.h"
@@ -28,13 +29,14 @@ class GameLogic {
     int8_t target[2] = {0, -1};
     bool readyToRender = false;
     Vector velocity;
+    NotificationApp *notification;
 public:
     GameState state = Logo;
     bool dirty = true;
     double startTime;
     double end;
 
-    GameLogic(RenderBuffer *buffer, InputEventHandler *inputHandler);
+    GameLogic(RenderBuffer *buffer, InputEventHandler *inputHandler, NotificationApp *notification_app);
 
     ~GameLogic();
 
@@ -65,6 +67,8 @@ public:
     void HandleNavigation(int key);
 
     void PickAndPlace();
+    void PlayError();
+    void PlayBounce();
 
     int8_t FirstNonFlipped(const List<Card> &deck);
 };
