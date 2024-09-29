@@ -1,14 +1,6 @@
-[![GitHub release](https://img.shields.io/github/release/teeebor/flipper_solitaire?include_prereleases=&sort=semver&color=blue)](https://github.com/teeebor/flipper_solitaire/releases/)
-[![License](https://img.shields.io/badge/License-MIT-blue)](/LICENSE)
-[![issues - flipper-zero_authenticator](https://img.shields.io/github/issues/teeebor/flipper_solitaire)](https://github.com/teeebor/flipper_solitaire/issues)
-![maintained - yes](https://img.shields.io/badge/maintained-yes-blue)
-![contributions - welcome](https://img.shields.io/badge/contributions-welcome-blue)
 # Solitaire - Klondike for Flipper Zero
 
-
-![Play buffer](screenshots/solitaire.png)
-
-![Play buffer](screenshots/solitaire.gif)
+Solitaire, the classic Klondike version, now available on your Flipper Zero. 
 
 ## Features
 
@@ -36,12 +28,3 @@
 - Aim to build up four foundation piles in ascending order, separated by suit.
 - Flip and move cards within the tableau to reveal hidden cards.
 - You can place back cards in the same spot you picked them up.
-
-
-## Building
-> The app should be compatible with the official and custom flipper firmwares. If not, follow these steps to build it
-> yourself
-* Set up [uFBT](https://pypi.org/project/ufbt/) if you haven't already
-* Navigate into the folder of the game
-* Run `ufbt`
-* the finished build will be in the dist folder, copy this the fap file into your SD card
