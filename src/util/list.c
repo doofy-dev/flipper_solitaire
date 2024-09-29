@@ -45,7 +45,6 @@ void list_free_data(List *list) {
 void list_clear(List *list) {
     if (list == NULL) return;
     ListItem *start = list->head;
-    FURI_LOG_W("LIST", "list_clear");
     while (start) {
         ListItem *next = start->next;
         free(start);

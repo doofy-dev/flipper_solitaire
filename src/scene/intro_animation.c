@@ -59,7 +59,6 @@ void render_intro_screen(void *data) {
 }
 
 static bool animation_done(GameState *state) {
-    FURI_LOG_W("DELTA", "%f", (double)state->delta_time);
     accumulated_delta += state->delta_time * 4;
     vector_lerp(&(animation_from), &animation_target, accumulated_delta,
                 &(state->animated_card.position));

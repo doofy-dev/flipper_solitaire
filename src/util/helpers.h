@@ -11,14 +11,10 @@
 
 #ifdef DEBUG_BUILD
 #define check_pointer(X) _check_ptr( X, __FILE__, __LINE__, __FUNCTION__)
-#define log_location(X) _log_location( X, __FILE__, __LINE__, __FUNCTION__)
 #else
 #define check_pointer(X) _test_ptr(X)
 #define trace(X) while(0)
 #endif
-
-#define CHECK_HEAP() FURI_LOG_I("Solitaire", "Free/total heap: %zu / %zu", memmgr_get_free_heap(), memmgr_get_total_heap())
-
 
 char *get_basename(const char *path);
 
@@ -30,7 +26,6 @@ bool _test_ptr(void *p);
 
 bool _check_ptr(void *p, const char *file, int line, const char *func);
 
-void _log_location(const char *p, const char *file, int line, const char *func);
 
 float inverse_tanh(double x);
 

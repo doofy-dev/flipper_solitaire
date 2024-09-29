@@ -12,10 +12,6 @@ float lerp_number(float a, float b, float t) {
     return (1 - t) * a + t * b;
 }
 
-void _log_location(const char *p, const char *file, int line, const char *func) {
-    FURI_LOG_W("App", "[TRACE][%s] %s:%s():%i", p, get_basename((char *) file), func, line);
-}
-
 bool _test_ptr(void *p) {
     return p != NULL;
 }
