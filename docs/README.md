@@ -16,6 +16,7 @@ Solitaire, the classic Klondike version, now available on your Flipper Zero.
 * **Long Press Back:** Close the application instantly.
 
 ## Rules
+
 - **Empty Tableau Spots:** Only a King can be placed in an empty tableau spot.
 - **Tableau Arrangement:** Cards must be arranged in descending order and alternating colors (e.g., red ten on black nine) within the tableau.
 - **Empty Foundation Piles:** Only an Ace can be placed in an empty foundation pile.
