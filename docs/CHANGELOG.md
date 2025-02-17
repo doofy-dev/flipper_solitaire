@@ -1,3 +1,7 @@
+## v2.0.2
+
+- Fixed cards from waste can be placed on the first tableau
+  
 ## v2.0.1
 
 - Fixed memory leak
