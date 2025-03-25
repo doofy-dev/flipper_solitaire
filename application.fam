@@ -9,8 +9,8 @@ App(
     order=30,
     fap_icon="solitaire_10px.png",
     fap_category="Games",
-    fap_author="@doofy_dev",
+    fap_author="doofy-dev",
     fap_weburl="https://github.com/doofy-dev/flipper_solitaire",
-    fap_version="2.0",
+    fap_version="2.0.2",
     fap_description="Klondike Solitaire card game",
 )
